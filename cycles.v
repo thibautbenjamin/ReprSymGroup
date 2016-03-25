@@ -400,7 +400,49 @@ Variable T: finType.
 
 Implicit Type s: seq T.
 
-Definition permCycle s := finfun (cycle_of_seq s). 
+Definition fun_of_seq s : T -> T :=
+   if uniq s then cycle_of_seq s else cycle_of_seq [::].
+
+Definition ffun_of_seq s : {ffun T -> T} := finfun (fun_of_seq s).
+
+Lemma funCycleP s : injective (ffun_of_seq s).
+Proof.
+  rewrite /ffun_of_seq/fun_of_seq.
+  case: (boolP (uniq s)) =>
+      [/uniq_cycle_of_seq/bij_inj Hinj|_] i j; rewrite !ffunE //.
+  exact: Hinj.
+Qed.
+
+Definition permCycle s : {perm T} := perm (@funCycleP s).
+
+Definition support (s : {perm T}) := [set x | s x != x].
+
+Lemma support_permCycle s :
+  size s >= 2 -> uniq s -> support (permCycle s) = [set x in s].
+Proof.
+  rewrite /permCycle /support /= => Hsz Huniq; apply/setP => t.
+  rewrite !inE permE ffunE /fun_of_seq Huniq /cycle_of_seq.
+  case: (boolP (t \in s)) => [Hts|].
+  - rewrite nth_rotate ?index_mem //.
+    move: Hsz; apply contraL; rewrite -leqNgt -{3}(nth_index t Hts).
+    rewrite nth_uniq ?index_mem //; first last.
+      by apply ltn_pmod; case: s Hts {Huniq}.
+    move: (index t s) (size s) => n m {s t Hts Huniq}.
+    rewrite add1n => /eqP; case: m => [// |m] Hn.
+    rewrite ltnS leqn0.
+    case: (ltnP n m) => Hnm.
+    + exfalso; move: Hn; rewrite modn_small ?ltnS // => /eqP; by elim: n {Hnm}.
+    + have {Hnm} Hnm : n = m.
+        apply anti_leq; rewrite {}Hnm andbT.
+        by rewrite -Hn -ltnS ltn_mod.
+      by move: Hn; rewrite Hnm modnn => <-.
+  - rewrite -index_mem -leqNgt => Hind.
+    by rewrite nth_default ?size_rotate // eq_refl.
+Qed.
+
+Lemma is_cycleP (s : {perm T}) :
+  reflect (exists l : seq T, s = permCycle l) (is_cycle s).
+
 
 End PermCycles.
 
