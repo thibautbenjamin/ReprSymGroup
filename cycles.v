@@ -403,11 +403,9 @@ Implicit Type s: seq T.
 Definition fun_of_seq s : T -> T :=
    if uniq s then cycle_of_seq s else cycle_of_seq [::].
 
-Definition ffun_of_seq s : {ffun T -> T} := finfun (fun_of_seq s).
-
-Lemma funCycleP s : injective (ffun_of_seq s).
+Lemma funCycleP s : injective (finfun (fun_of_seq s)).
 Proof.
-  rewrite /ffun_of_seq/fun_of_seq.
+  rewrite /fun_of_seq.
   case: (boolP (uniq s)) =>
       [/uniq_cycle_of_seq/bij_inj Hinj|_] i j; rewrite !ffunE //.
   exact: Hinj.
@@ -438,6 +436,15 @@ Proof.
       by move: Hn; rewrite Hnm modnn => <-.
   - rewrite -index_mem -leqNgt => Hind.
     by rewrite nth_default ?size_rotate // eq_refl.
+Qed.
+
+Lemma permCycle_one s :
+  size s <= 1 -> permCycle s = perm_one T.
+Proof.
+  case: s => [_ | s0 [_ | s1 //]];
+    rewrite /permCycle -permP => x; rewrite !permE ffunE //.
+  rewrite /fun_of_seq/=/cycle_of_seq/=.
+  by case: eqP => [-> | Hx].
 Qed.
 
 Lemma is_cycleP (s : {perm T}) :
