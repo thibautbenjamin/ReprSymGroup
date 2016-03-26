@@ -1,6 +1,6 @@
 Require Import mathcomp.ssreflect.ssreflect.
 From mathcomp Require Import ssrfun ssrbool eqtype ssrnat seq choice fintype div.
-From mathcomp Require Import tuple finfun bigop finset binomial fingroup perm automorphism action.
+From mathcomp Require Import tuple finfun path bigop finset binomial fingroup perm automorphism action.
 
 From Combi Require Import symgroup partition.
 
@@ -447,9 +447,34 @@ Proof.
   by case: eqP => [-> | Hx].
 Qed.
 
-Lemma is_cycleP (s : {perm T}) :
-  reflect (exists l : seq T, s = permCycle l) (is_cycle s).
+Definition cyseq_of_perm (s : {perm T}) : seq T :=
+  if pick (mem (support s)) is Some t then traject s t #|pcycle s t| else [::].
 
+Definition is_cycle (s : {perm T}) :=
+   all (fun x : {set T} => #|x| == 1) (enum (pcycles s)).
+
+
+Lemma is_cycleP (s : {perm T}) :
+  is_cycle s -> permCycle (cyseq_of_perm s) = s.
+Proof.
+  rewrite /is_cycle /cyseq_of_perm => H.
+  case: pickP => [t /= Ht | H0].
+  - rewrite -permP => x; rewrite /permCycle permE ffunE /fun_of_seq.
+    rewrite uniq_traject_pcycle /cycle_of_seq.
+    case: (boolP (x \in pcycle s t)); rewrite pcycle_traject => Hx.
+    + rewrite nth_rotate ?index_mem //.
+      admit.
+    + rewrite nth_default //.
+      * move: Hx; rewrite -pcycle_traject.
+        admit.
+      * by rewrite size_rotate leqNgt index_mem.
+  - have {H0} H0 : support s = set0.
+      rewrite -setP => i.
+      have /= -> := (H0 i).
+      by rewrite inE.
+    rewrite permCycle_one // -permP => x; rewrite !permE.
+    by move: H0; rewrite -setP => /(_ x); rewrite !inE => /negbFE/eqP ->.
+Qed.
 
 End PermCycles.
 
