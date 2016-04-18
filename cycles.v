@@ -286,6 +286,40 @@ Proof.
   by rewrite !support_restr_perm // => ->.
 Qed.
 
+Lemma support_stable s x : (x \in support s) = (s x \in support s).
+Proof.
+  rewrite !in_support; congr negb; apply/idP/idP => [/eqP -> // | /eqP H].
+  by rewrite -[s x](permK s) H permK.
+Qed.
+
+Lemma support_disjointC s t :
+  [disjoint support s & support t] -> (s * t = t * s)%g.
+Proof.
+  move=> Hdisj; apply/permP => x; rewrite !permM.
+  case: (boolP (x \in support s)) => [Hs |].
+  - have:= Hdisj; rewrite disjoints_subset => /subsetP H.
+    have:= H x Hs; rewrite inE in_support negbK => /eqP ->.
+    move: Hs; rewrite support_stable => /H.
+    by rewrite inE in_support negbK => /eqP ->.
+  - rewrite in_support negbK => /eqP Hs; rewrite Hs.
+    case: (boolP (x \in support t)) => [Ht |].
+    + move: Ht; rewrite support_stable.
+      move: Hdisj; rewrite -setI_eq0 setIC setI_eq0 disjoints_subset => /subsetP.
+      by move=> H/H{H}; rewrite inE in_support negbK => /eqP ->.
+    + by rewrite in_support negbK => /eqP ->; rewrite Hs.
+Qed.
+
+Lemma abelian_cycle_dec s : abelian (cycle_dec s).
+Proof.
+  rewrite abelianE; apply/subsetP => C HC.
+  apply/centP => D HD.
+  case: (altP (C =P D)) => [-> // | HCD].
+  apply support_disjointC.
+  have: support C != support D.
+    by move: HCD; apply contra => /eqP/(support_inj HC HD) ->.
+  apply/(trivIsetP (disjoint_cycle_dec s)); exact: mem_imset.
+Qed.
+
 Lemma out_perm_prod (A: seq {perm T}) x:
   {in A, forall C, x \notin support C} -> (\prod_(C <- A) C)%g x = x.
 Proof.
@@ -304,7 +338,7 @@ Lemma cycle_decE_florent s : (\prod_(C in cycle_dec s) C)%g = s.
 Proof.
   move: {2}(#|cycle_dec s|) (erefl #|cycle_dec s|) => n.
   elim: n s => [| n IHn] s Hsn.
-    admit.
+    have:= Hsn.
   rewrite big_enum.
   have := erefl (pick (mem (cycle_dec s))).
   rewrite {1}/pick.
